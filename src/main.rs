@@ -10,7 +10,12 @@ fn main() {
         eprintln!("Error: 1 argument needed");
         return;
     }
-    let mut script = script::Script::load(&args[1]);
+    let path = &args[1];
+    if !path.ends_with(".dice") {
+        eprintln!("Error: file must end with \".dice\"");
+        return;
+    }
+    let mut script = script::Script::load(path);
 
     script.run();
 }
