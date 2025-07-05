@@ -132,27 +132,11 @@ fn eval_expr(expr: &str, state: &State) -> i32 {
         let vreg = Regex::new(&format!(r"\b{}\b", regex::escape(key))).unwrap();
         expr = vreg.replace_all(&expr, val.to_string()).to_string();
     }
-    eval_basic_arithmetic(&expr)
-}
-
-fn eval_basic_arithmetic(expr: &str) -> i32 {
-    let tokens = expr.split_whitespace().collect::<Vec<_>>();
-    let mut total = 0;
-    let mut op = "+";
-
-    for token in tokens {
-        match token {
-            "+" | "-" => op = token,
-            num => {
-                if let Ok(n) = num.parse::<i32>() {
-                    total = match op {
-                        "+" => total + n,
-                        "-" => total - n,
-                        _ => total,
-                    }
-                }
-            }
+    match meval::eval_str(&expr) {
+        Ok(result) => result as i32,
+        Err(_) => {
+            eprintln!("Error: Failed to evaluate expression: {expr}");
+            0
         }
     }
-    total
 }
