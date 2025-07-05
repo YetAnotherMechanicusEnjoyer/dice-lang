@@ -38,8 +38,19 @@ impl Script {
 
         if line.starts_with("print(") && line.ends_with(")") {
             let inner = &line[6..line.len() - 1];
-            //let val = eval_expr(inner, &self.state);
-            println!("{}", inner);
+            let parts = inner.split(',').map(|s| s.trim()).collect::<Vec<_>>();
+            let mut output = String::new();
+
+            for part in parts {
+                if part.starts_with('"') && part.ends_with('"') {
+                    output.push_str(&part[1..part.len() - 1]);
+                } else {
+                    let val = eval_expr(part, &self.state);
+                    output.push_str(&val.to_string());
+                }
+                output.push(' ');
+            }
+            println!("{}", output.trim_end());
             return 1;
         }
 
