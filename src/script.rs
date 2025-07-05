@@ -1,4 +1,4 @@
-use super::dice::roll;
+use regex::Regex;
 use std::{collections::HashMap, fs};
 
 pub type State = HashMap<String, i32>;
@@ -106,28 +106,53 @@ fn eval_condition(cond: &str, state: &State) -> bool {
 }
 
 fn eval_expr(expr: &str, state: &State) -> i32 {
-    if expr.starts_with("roll(") && expr.ends_with(")") {
-        let inner = &expr[5..expr.len() - 1].trim_matches('"');
-        return roll(inner);
-    }
+    let mut expr = expr.to_string();
 
-    if let Some(pos) = expr.find('+') {
-        let left = expr[..pos].trim();
-        let right = expr[pos + 1..].trim();
-        return eval_expr(left, state) + eval_expr(right, state);
-    }
-    if let Some(pos) = expr.find('-') {
-        let left = expr[..pos].trim();
-        let right = expr[pos + 1..].trim();
-        return eval_expr(left, state) - eval_expr(right, state);
-    }
+    let dreg = Regex::new(r"(\d*)d(\d+)(?:\s*\+\s*(\d+))?").unwrap();
+    expr = dreg
+        .replace_all(&expr, |caps: &regex::Captures| {
+            let num = caps
+                .get(1)
+                .map_or("1", |m| m.as_str())
+                .parse::<u32>()
+                .unwrap_or(1);
+            let sides = caps.get(2).unwrap().as_str().parse::<u32>().unwrap_or(6);
+            let bonus = caps
+                .get(3)
+                .map_or(0, |m| m.as_str().parse::<i32>().unwrap_or(0));
+            let mut total = 0;
+            for _ in 0..num {
+                total += (rand::random::<u32>() % sides + 1) as i32;
+            }
+            (total + bonus).to_string()
+        })
+        .to_string();
 
-    if let Ok(val) = expr.parse::<i32>() {
-        return val;
+    for (key, val) in state.iter() {
+        let vreg = Regex::new(&format!(r"\b{}\b", regex::escape(key))).unwrap();
+        expr = vreg.replace_all(&expr, val.to_string()).to_string();
     }
-    if let Some(val) = state.get(expr) {
-        return *val;
-    }
+    eval_basic_arithmetic(&expr)
+}
 
-    0
+fn eval_basic_arithmetic(expr: &str) -> i32 {
+    let tokens = expr.split_whitespace().collect::<Vec<_>>();
+    let mut total = 0;
+    let mut op = "+";
+
+    for token in tokens {
+        match token {
+            "+" | "-" => op = token,
+            num => {
+                if let Ok(n) = num.parse::<i32>() {
+                    total = match op {
+                        "+" => total + n,
+                        "-" => total - n,
+                        _ => total,
+                    }
+                }
+            }
+        }
+    }
+    total
 }
