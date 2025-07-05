@@ -1,7 +1,13 @@
 use regex::Regex;
 use std::{collections::HashMap, fs};
 
-pub type State = HashMap<String, i32>;
+#[derive(Clone, Debug)]
+pub enum Value {
+    Int(i32),
+    Str(String),
+}
+
+pub type State = HashMap<String, Value>;
 
 pub struct Script {
     lines: Vec<String>,
@@ -42,23 +48,20 @@ impl Script {
             let mut output = String::new();
 
             for part in parts {
-                if part.starts_with('"') && part.ends_with('"') {
-                    output.push_str(&part[1..part.len() - 1]);
-                } else {
-                    let val = eval_expr(part, &self.state);
-                    output.push_str(&val.to_string());
+                match eval_expr(part, &self.state) {
+                    Value::Int(i) => output.push_str(&i.to_string()),
+                    Value::Str(s) => output.push_str(&s),
                 }
-                output.push(' ');
             }
             println!("{}", output.trim_end());
             return 1;
         }
 
-        if let Some(pos) = line.find('=') {
-            let var = line[..pos].trim();
-            let expr = line[pos + 1..].trim();
-            let val = eval_expr(expr, &self.state);
-            self.state.insert(var.to_string(), val);
+        if line.contains('=') {
+            let parts: Vec<_> = line.splitn(2, '=').collect();
+            let key = parts[0].trim().to_string();
+            let value = eval_expr(parts[1].trim(), &self.state);
+            self.state.insert(key, value);
             return 1;
         }
 
@@ -82,6 +85,7 @@ impl Script {
 }
 
 fn eval_condition(cond: &str, state: &State) -> bool {
+    let cond = cond.trim();
     let ops = ["<=", ">=", "==", "<", ">", "!="];
 
     for op in ops {
@@ -91,22 +95,43 @@ fn eval_condition(cond: &str, state: &State) -> bool {
             let lv = eval_expr(left, state);
             let rv = eval_expr(right, state);
 
-            return match op {
-                "<=" => lv <= rv,
-                ">=" => lv >= rv,
-                "==" => lv == rv,
-                "<" => lv < rv,
-                ">" => lv > rv,
-                "!=" => lv != rv,
-                _ => false,
+            return match (lv, rv) {
+                (Value::Int(l), Value::Int(r)) => match op {
+                    "<=" => l <= r,
+                    ">=" => l >= r,
+                    "==" => l == r,
+                    "<" => l < r,
+                    ">" => l > r,
+                    "!=" => l != r,
+                    _ => false,
+                },
+                (Value::Str(l), Value::Str(r)) => match op {
+                    "==" => l == r,
+                    "!=" => l != r,
+                    _ => {
+                        eprintln!("Error: Invalid operator `{op}` for string comparison");
+                        false
+                    }
+                },
+                _ => {
+                    eprintln!("Error: Type mismatch in condition: `{cond}`");
+                    false
+                }
             };
         }
     }
-    false
+    match eval_expr(cond, state) {
+        Value::Int(i) => i != 0,
+        Value::Str(s) => !s.is_empty(),
+    }
 }
 
-fn eval_expr(expr: &str, state: &State) -> i32 {
+fn eval_expr(expr: &str, state: &State) -> Value {
     let mut expr = expr.to_string();
+
+    if expr.starts_with('"') && expr.ends_with('"') {
+        return Value::Str(expr[1..expr.len() - 1].to_string());
+    }
 
     let dreg = Regex::new(r"(\d*)d(\d+)(?:\s*\+\s*(\d+))?").unwrap();
     expr = dreg
@@ -129,14 +154,21 @@ fn eval_expr(expr: &str, state: &State) -> i32 {
         .to_string();
 
     for (key, val) in state.iter() {
+        let vstr = match val {
+            Value::Int(i) => i.to_string(),
+            Value::Str(s) => format!("\"{s}\""),
+        };
         let vreg = Regex::new(&format!(r"\b{}\b", regex::escape(key))).unwrap();
-        expr = vreg.replace_all(&expr, val.to_string()).to_string();
+        expr = vreg.replace_all(&expr, vstr).to_string();
     }
     match meval::eval_str(&expr) {
-        Ok(result) => result as i32,
+        Ok(result) => Value::Int(result as i32),
         Err(_) => {
+            if expr.starts_with('"') && expr.ends_with('"') {
+                return Value::Str(expr[1..expr.len() - 1].to_string());
+            }
             eprintln!("Error: Failed to evaluate expression: {expr}");
-            0
+            Value::Int(0)
         }
     }
 }
