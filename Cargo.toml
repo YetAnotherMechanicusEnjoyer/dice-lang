@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+meval = "0.2.0"
 rand = "0.9.1"
 regex = "1.11.1"
