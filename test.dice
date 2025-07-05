@@ -1,7 +1,7 @@
 player_hp = 30
 enemy_hp = 20
 
-damage = roll("2d6 + 3")
+damage = 2d6 + 3
 enemy_hp = enemy_hp - damage
 
 print("You dealt", damage, "damage to the enemy.")
