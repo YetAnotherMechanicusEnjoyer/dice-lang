@@ -4,6 +4,7 @@ enemy_hp = 20
 damage = roll("2d6 + 3")
 enemy_hp = enemy_hp - damage
 
+print(enemy_hp)
 if enemy_hp <= 0 then
   print("Enemy Defeated !")
 end
