@@ -29,3 +29,7 @@ end
 if 4d6 + 1 > 15 then
   print("OH NO YOU HIT THE THIRD TOWER !!")
 end
+
+if 1 > 5 then
+  print("this is an error")
+end
