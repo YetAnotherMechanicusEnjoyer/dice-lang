@@ -1,4 +1,3 @@
-pub mod dice;
 mod script;
 
 use std::env;
