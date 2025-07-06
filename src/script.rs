@@ -71,16 +71,43 @@ impl Script {
     fn run_if(&mut self, index: usize) -> usize {
         let line = &self.lines[index];
         let cond = line.trim_start_matches("if ").trim_end_matches(" then");
+        let condition = eval_condition(cond, &self.state);
 
-        if eval_condition(cond, &self.state) {
-            if index + 1 < self.lines.len() {
-                self.run_line(index + 1);
-                return 3;
+        let mut block_true = vec![];
+        let mut block_false = vec![];
+        let mut current = &mut block_true;
+        let mut j = index + 1;
+
+        while j < self.lines.len() {
+            let l = self.lines[j].trim();
+
+            if l == "end" {
+                break;
+            } else if l == "else" {
+                current = &mut block_false;
+            } else {
+                current.push(l);
             }
-        } else {
-            return 3;
+            j += 1;
         }
-        1
+
+        let (block, b) = if condition {
+            (&block_true, true)
+        } else {
+            (&block_false, false)
+        };
+        let (start, end) = if b {
+            (index + 1, block.len() + index + 1)
+        } else {
+            (
+                index + block_true.len() + 1,
+                index + block_true.len() + block.len() + 1,
+            )
+        };
+        for k in start..=end {
+            self.run_line(k);
+        }
+        j - index + 1
     }
 }
 
