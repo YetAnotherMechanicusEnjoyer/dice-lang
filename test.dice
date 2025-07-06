@@ -1,5 +1,6 @@
 player_name = "Player"
 player_hp = 30
+
 enemy_name = "Enemy"
 enemy_hp = 20
 
@@ -8,23 +9,23 @@ enemy_hp = enemy_hp - damage
 
 if enemy_name == player_name then
   print(enemy_name, " == ", player_name)
-end
-
-if enemy_name != player_name then
+else
   print(enemy_name, " != ", player_name)
 end
 
 print("You dealt ", damage, " damage to ", enemy_name)
 print(enemy_name, " HP: ", enemy_hp)
 
+// This is a comment
+
 if enemy_hp <= 0 then
   print("Enemy Defeated !")
-end
-
-if enemy_hp > 0 then
+else
   print("Enemy not Defeated !")
 end
 
-if 2d6 + 1 > 8 then
+// This is also a comment
+
+if 4d6 + 1 > 15 then
   print("OH NO YOU HIT THE THIRD TOWER !!")
 end
