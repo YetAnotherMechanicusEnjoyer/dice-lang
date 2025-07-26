@@ -53,7 +53,7 @@ impl Script {
                     Value::Str(s) => output.push_str(&s),
                 }
             }
-            println!("{}", output);
+            println!("{output}");
             return 1;
         }
 
